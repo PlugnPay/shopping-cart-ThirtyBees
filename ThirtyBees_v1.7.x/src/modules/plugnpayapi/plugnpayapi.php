@@ -6,7 +6,7 @@
  * @license AFL-3.0
  */
 
-if (!defined('_TB_VERSION_') && !defined('_PS_VERSION_')) {
+if (!defined('_TB_VERSION_')) {
     exit;
 }
 
@@ -40,7 +40,7 @@ class Plugnpayapi extends PaymentModule
     {
         $this->name = 'plugnpayapi';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.0';
+        $this->version = '1.0.1';
         $this->author = 'PlugnPay Technologies';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -66,9 +66,9 @@ class Plugnpayapi extends PaymentModule
     public function install()
     {
         return parent::install()
-            && $this->registerHook('payment')
-            && $this->registerHook('orderConfirmation')
-            && $this->registerHook('header')
+            && $this->registerHook('displayPayment')
+            && $this->registerHook('paymentReturn')
+            && $this->registerHook('displayHeader')
             && $this->installConfiguration();
     }
 
@@ -102,7 +102,7 @@ class Plugnpayapi extends PaymentModule
      *
      * @return string|false
      */
-    public function hookPayment($params)
+    public function hookDisplayPayment($params)
     {
         $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
         if (!$this->canDisplayForCart($cart)) {
@@ -142,11 +142,28 @@ class Plugnpayapi extends PaymentModule
         return $this->display(__FILE__, 'views/templates/hook/payment.tpl');
     }
 
-    public function hookHeader()
+    /**
+     * Backward-compatible alias used by PrestaShop 1.6-style hook dispatch.
+     *
+     * @param array $params
+     *
+     * @return string|false
+     */
+    public function hookPayment($params)
+    {
+        return $this->hookDisplayPayment($params);
+    }
+
+    public function hookDisplayHeader()
     {
         if (isset($this->context->controller)) {
             $this->context->controller->addCSS($this->_path . 'views/css/plugnpayapi.css');
         }
+    }
+
+    public function hookHeader()
+    {
+        return $this->hookDisplayHeader();
     }
 
     /**
@@ -154,7 +171,7 @@ class Plugnpayapi extends PaymentModule
      *
      * @return string
      */
-    public function hookOrderConfirmation($params)
+    public function hookPaymentReturn($params)
     {
         if (empty($params['objOrder']) || $params['objOrder']->module !== $this->name) {
             return '';
@@ -169,6 +186,18 @@ class Plugnpayapi extends PaymentModule
         ]);
 
         return $this->display(__FILE__, 'views/templates/hook/order_confirmation.tpl');
+    }
+
+    /**
+     * Backward-compatible alias for stores that still invoke orderConfirmation.
+     *
+     * @param array $params
+     *
+     * @return string
+     */
+    public function hookOrderConfirmation($params)
+    {
+        return $this->hookPaymentReturn($params);
     }
 
     public function isConfigured()

@@ -52,7 +52,7 @@ class Plugnpayss2RedirectModuleFrontController extends ModuleFrontController
 
         $this->display_header = false;
         $this->display_footer = false;
-        $this->setTemplate('module:plugnpayss2/views/templates/front/redirect.tpl');
+        $this->setTemplate('redirect.tpl');
     }
 
     private function redirectToPayment($message)

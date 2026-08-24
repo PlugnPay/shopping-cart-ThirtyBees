@@ -1,5 +1,12 @@
 PlugnPay Remote API for thirty bees
 
+Version 1.0.1 - 2026-08-24
+--------------------------------
+- Registered the canonical displayPayment, paymentReturn, and displayHeader hooks.
+- Added PrestaShop 1.6-style hook method aliases for thirty bees compatibility.
+- Added an upgrade routine so existing installations receive the corrected hooks.
+- Documented PHP 8.0 or later as the supported PHP version.
+
 Version 1.0.0 - 2026-08-24
 --------------------------------
 - Initial thirty bees 1.7.x release.

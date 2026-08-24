@@ -1,6 +1,6 @@
 # PlugnPay Remote API Module for thirty bees 1.7.x
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 
 Accept credit cards with PlugnPay's production Remote API. Checkout remains on
 the merchant storefront, and the module posts the authorization request to
@@ -8,7 +8,7 @@ the merchant storefront, and the module posts the authorization request to
 
 ## Features
 
-- Native thirty bees `PaymentModule` using the `payment` hook
+- Native thirty bees `PaymentModule` using the `displayPayment` hook
 - Onsite cardholder name, PAN, expiration, and optional CVV collection
 - Authorize-only (`authonly`) or sale (`authpostauth`)
 - HTTPS-only storefront availability
@@ -33,7 +33,7 @@ For lower PCI scope, use a hosted PlugnPay checkout product instead.
 ## Requirements
 
 - thirty bees 1.7.0
-- PHP 7.4–8.3 with cURL and OpenSSL
+- PHP 8.0 or later with cURL and OpenSSL
 - HTTPS enabled and detected by thirty bees
 - PlugnPay publisher name
 - Remote Client Password from PlugnPay Security Administration
@@ -68,7 +68,7 @@ Remote API endpoint.
 
 ## Checkout flow
 
-1. The `payment` hook displays the card form only when the module is active,
+1. The `displayPayment` hook displays the card form only when the module is active,
    configured, currency-eligible, and running over HTTPS.
 2. The validation controller verifies the active cart, customer, secure
    checkout token, currency, addresses, card number, expiration, and CVV.

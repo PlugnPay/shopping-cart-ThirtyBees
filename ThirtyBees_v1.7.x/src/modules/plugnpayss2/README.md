@@ -1,6 +1,6 @@
 # PlugnPay Smart Screens v2 Module for thirty bees 1.7.x
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 
 Hosted **authorization-only** payments via PlugnPay Smart Screens v2:
 
@@ -13,7 +13,7 @@ PlugnPay Merchant Admin.
 
 ## Features
 
-- Native thirty bees `PaymentModule` using the `payment` hook
+- Native thirty bees `PaymentModule` using the `displayPayment` hook
 - Offsite / hosted checkout (card data collected on PlugnPay)
 - Authorization-only (`pb_post_auth=no`) — orders use Preparation/Pending
 - Gateway currency setting with store exchange-rate conversion
@@ -36,7 +36,7 @@ PlugnPay Merchant Admin.
 ## Requirements
 
 - thirty bees 1.7.0
-- PHP 7.4–8.3
+- PHP 8.0 or later
 - HTTPS enabled on the storefront
 - PlugnPay gateway account username
 
