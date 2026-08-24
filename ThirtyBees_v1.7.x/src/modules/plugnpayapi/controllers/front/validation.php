@@ -9,11 +9,28 @@
 class PlugnpayapiValidationModuleFrontController extends ModuleFrontController
 {
     public $ssl = true;
+    public $display_column_left = false;
+    public $display_column_right = false;
 
     public function postProcess()
     {
         parent::postProcess();
 
+        try {
+            $this->processPayment();
+        } catch (Throwable $exception) {
+            $this->addShopLog(
+                'PlugnPay Remote API checkout failed: ' . $exception->getMessage(),
+                4
+            );
+            $this->redirectToPayment(
+                $this->module->l('The payment could not be processed. Please try again.')
+            );
+        }
+    }
+
+    private function processPayment()
+    {
         /** @var Plugnpayapi $module */
         $module = $this->module;
         $cart = $this->context->cart;
@@ -100,39 +117,40 @@ class PlugnpayapiValidationModuleFrontController extends ModuleFrontController
             $this->redirectToPayment($message);
         }
 
-        $expectedAmount = number_format((float) $cart->getOrderTotal(true, Cart::BOTH), 2, '.', '');
-        $responseAmount = isset($response['card-amount'])
-            ? $response['card-amount']
-            : (isset($response['card_amount']) ? $response['card_amount'] : null);
-        if ($responseAmount !== null
-            && (float) $expectedAmount > 0
-            && abs((float) $responseAmount - (float) $expectedAmount) > 0.009
-        ) {
-            Logger::addLog(
-                'PlugnPay approved amount did not match cart ' . (int) $cart->id,
-                3
-            );
-            $this->stopAfterApproval($this->responseValue($response, ['orderID', 'orderid']));
-        }
-
         $transactionId = $this->responseValue($response, ['orderID', 'orderid']);
-        $authCode = $this->responseValue($response, ['auth-code', 'auth_code']);
-        $avsCode = $this->responseValue($response, ['avs-code', 'avs_code']);
-        $cvvResponse = $this->responseValue($response, ['cvvresp']);
-        $paymentMessage = 'PlugnPay Remote API'
-            . ' AUTH: ' . $authCode
-            . ' orderID: ' . $transactionId;
-        if ($module->getAuthType() === 'authonly') {
-            $paymentMessage .= ' (auth-only; settle in PlugnPay Admin)';
-        }
-        if ($avsCode !== '') {
-            $paymentMessage .= ' AVS: ' . $avsCode;
-        }
-        if ($cvvResponse !== '') {
-            $paymentMessage .= ' CVV: ' . $cvvResponse;
-        }
 
         try {
+            $expectedAmount = number_format((float) $cart->getOrderTotal(true, Cart::BOTH), 2, '.', '');
+            $responseAmount = isset($response['card-amount'])
+                ? $response['card-amount']
+                : (isset($response['card_amount']) ? $response['card_amount'] : null);
+            if ($responseAmount !== null
+                && (float) $expectedAmount > 0
+                && abs((float) $responseAmount - (float) $expectedAmount) > 0.009
+            ) {
+                $this->addShopLog(
+                    'PlugnPay approved amount did not match cart ' . (int) $cart->id,
+                    3
+                );
+                $this->stopAfterApproval($transactionId);
+            }
+
+            $authCode = $this->responseValue($response, ['auth-code', 'auth_code']);
+            $avsCode = $this->responseValue($response, ['avs-code', 'avs_code']);
+            $cvvResponse = $this->responseValue($response, ['cvvresp']);
+            $paymentMessage = 'PlugnPay Remote API'
+                . ' AUTH: ' . $authCode
+                . ' orderID: ' . $transactionId;
+            if ($module->getAuthType() === 'authonly') {
+                $paymentMessage .= ' (auth-only; settle in PlugnPay Admin)';
+            }
+            if ($avsCode !== '') {
+                $paymentMessage .= ' AVS: ' . $avsCode;
+            }
+            if ($cvvResponse !== '') {
+                $paymentMessage .= ' CVV: ' . $cvvResponse;
+            }
+
             $module->validateOrder(
                 (int) $cart->id,
                 $module->getSuccessOrderStateId(),
@@ -142,10 +160,36 @@ class PlugnpayapiValidationModuleFrontController extends ModuleFrontController
                 ['transaction_id' => $transactionId],
                 (int) $cart->id_currency,
                 false,
-                (string) $customer->secure_key
+                (string) $cart->secure_key
+            );
+
+            if (!(int) $module->currentOrder) {
+                $this->addShopLog(
+                    'PlugnPay approved cart but order creation failed for cart ' . (int) $cart->id
+                    . '. Gateway orderID: ' . $transactionId,
+                    4
+                );
+                $this->stopAfterApproval($transactionId);
+            }
+
+            try {
+                $this->storeTransactionId((int) $module->currentOrder, $transactionId);
+            } catch (Throwable $exception) {
+                $this->addShopLog(
+                    'PlugnPay could not store the gateway transaction ID on order '
+                    . (int) $module->currentOrder . ': ' . $exception->getMessage(),
+                    3
+                );
+            }
+
+            Tools::redirect(
+                'index.php?controller=order-confirmation&id_cart=' . (int) $cart->id
+                . '&id_module=' . (int) $module->id
+                . '&id_order=' . (int) $module->currentOrder
+                . '&key=' . $customer->secure_key
             );
         } catch (Throwable $exception) {
-            Logger::addLog(
+            $this->addShopLog(
                 'PlugnPay approved cart ' . (int) $cart->id
                 . ' but order creation raised an exception. Gateway orderID: ' . $transactionId
                 . '. Error: ' . $exception->getMessage(),
@@ -153,30 +197,6 @@ class PlugnpayapiValidationModuleFrontController extends ModuleFrontController
             );
             $this->stopAfterApproval($transactionId);
         }
-
-        if (!(int) $module->currentOrder) {
-            Logger::addLog(
-                'PlugnPay approved cart but order creation failed for cart ' . (int) $cart->id
-                . '. Gateway orderID: ' . $transactionId,
-                4
-            );
-            $this->stopAfterApproval($transactionId);
-        }
-
-        $this->storeTransactionId((int) $module->currentOrder, $transactionId);
-
-        $confirmationUrl = $this->context->link->getPageLink(
-            'order-confirmation',
-            true,
-            null,
-            http_build_query([
-                'id_cart' => (int) $cart->id,
-                'id_module' => (int) $module->id,
-                'id_order' => (int) $module->currentOrder,
-                'key' => (string) $customer->secure_key,
-            ])
-        );
-        Tools::redirect($confirmationUrl);
     }
 
     private function validateCardData($number, $owner, $month, $year, $cvv, $requireCvv)
@@ -253,17 +273,32 @@ class PlugnpayapiValidationModuleFrontController extends ModuleFrontController
 
     private function redirectToPayment($message)
     {
-        $url = $this->context->link->getPageLink(
-            'order',
-            true,
-            null,
-            http_build_query([
-                'step' => 3,
-                'plugnpayapi_error' => Tools::substr(strip_tags((string) $message), 0, 300),
-            ])
+        Tools::redirect(
+            $this->context->link->getPageLink(
+                'order',
+                true,
+                null,
+                [
+                    'step' => 3,
+                    'plugnpayapi_error' => Tools::substr(strip_tags((string) $message), 0, 300),
+                ]
+            )
         );
-        Tools::redirect($url);
         exit;
+    }
+
+    private function addShopLog($message, $severity = 3)
+    {
+        try {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog((string) $message, (int) $severity);
+                return;
+            }
+            if (class_exists('Logger')) {
+                Logger::addLog((string) $message, (int) $severity);
+            }
+        } catch (Throwable $ignored) {
+        }
     }
 
     private function stopAfterApproval($transactionId)

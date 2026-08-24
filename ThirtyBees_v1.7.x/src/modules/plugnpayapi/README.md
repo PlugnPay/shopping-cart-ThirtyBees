@@ -1,6 +1,6 @@
 # PlugnPay Remote API Module for thirty bees 1.7.x
 
-**Version:** 1.0.1
+**Version:** 1.0.2
 
 Accept credit cards with PlugnPay's production Remote API. Checkout remains on
 the merchant storefront, and the module posts the authorization request to
@@ -111,6 +111,8 @@ Do not weaken these protections or add raw request/response dumps elsewhere.
   HTTPS connectivity.
 - **Decline:** review the customer-safe gateway message and the matching
   transaction in PlugnPay Merchant Admin.
+- **HTTP 500 on Pay:** upload module version 1.0.2 and let thirty bees run
+  the upgrade. Do not resubmit a card if the gateway already approved it.
 - **Approved but order creation failed:** do not resubmit. Use the displayed
   gateway reference to reconcile the transaction in Merchant Admin and review
   the thirty bees log.

@@ -1,5 +1,14 @@
 PlugnPay Remote API for thirty bees
 
+Version 1.0.2 - 2026-08-24
+--------------------------------
+- Assigned Smarty variables on the module Smarty_Data object used by thirty bees 1.7.
+- Rendered hook templates as payment.tpl / order_confirmation.tpl, matching core payment modules.
+- Replaced deprecated Cart::getOrderShippingCost() with Cart::ONLY_SHIPPING.
+- Passed the cart secure_key into validateOrder(), matching bankwire on thirty bees 1.7.
+- Used PrestaShopLogger instead of the Logger alias.
+- Returned an empty string from displayPayment when the method is unavailable (PHP 8 concatenation).
+
 Version 1.0.1 - 2026-08-24
 --------------------------------
 - Registered the canonical displayPayment, paymentReturn, and displayHeader hooks.

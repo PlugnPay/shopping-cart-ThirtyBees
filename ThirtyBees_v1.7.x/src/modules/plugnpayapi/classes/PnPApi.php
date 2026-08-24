@@ -29,7 +29,7 @@ class PnPApi
     /** @var string */
     private $communicationError = '';
 
-    public function __construct($publisherName, $publisherPassword, PnPLogger $logger = null)
+    public function __construct($publisherName, $publisherPassword, ?PnPLogger $logger = null)
     {
         $this->publisherName = (string) $publisherName;
         $this->publisherPassword = (string) $publisherPassword;

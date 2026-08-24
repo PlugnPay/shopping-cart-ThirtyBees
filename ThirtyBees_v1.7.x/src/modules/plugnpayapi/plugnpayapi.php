@@ -40,7 +40,7 @@ class Plugnpayapi extends PaymentModule
     {
         $this->name = 'plugnpayapi';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.1';
+        $this->version = '1.0.2';
         $this->author = 'PlugnPay Technologies';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -100,18 +100,18 @@ class Plugnpayapi extends PaymentModule
      *
      * @param array $params
      *
-     * @return string|false
+     * @return string
      */
     public function hookDisplayPayment($params)
     {
         $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
         if (!$this->canDisplayForCart($cart)) {
-            return false;
+            return '';
         }
 
         $customer = $this->context->customer;
         if (!Validate::isLoadedObject($customer)) {
-            return false;
+            return '';
         }
 
         $months = [];
@@ -129,17 +129,21 @@ class Plugnpayapi extends PaymentModule
             ];
         }
 
-        $this->context->smarty->assign([
-            'plugnpayapi_action' => $this->context->link->getModuleLink($this->name, 'validation', [], true),
-            'plugnpayapi_card_owner' => trim($customer->firstname . ' ' . $customer->lastname),
-            'plugnpayapi_checkout_token' => $this->getCheckoutToken($cart, $customer),
-            'plugnpayapi_error' => (string) Tools::getValue('plugnpayapi_error'),
-            'plugnpayapi_months' => $months,
-            'plugnpayapi_years' => $years,
-            'plugnpayapi_use_cvv' => Configuration::get(self::CONFIG_USE_CVV) === 'True',
-        ]);
+        try {
+            $this->smarty->assign([
+                'plugnpayapi_action' => $this->context->link->getModuleLink($this->name, 'validation', [], true),
+                'plugnpayapi_card_owner' => trim($customer->firstname . ' ' . $customer->lastname),
+                'plugnpayapi_checkout_token' => $this->getCheckoutToken($cart, $customer),
+                'plugnpayapi_error' => (string) Tools::getValue('plugnpayapi_error'),
+                'plugnpayapi_months' => $months,
+                'plugnpayapi_years' => $years,
+                'plugnpayapi_use_cvv' => Configuration::get(self::CONFIG_USE_CVV) === 'True',
+            ]);
 
-        return $this->display(__FILE__, 'views/templates/hook/payment.tpl');
+            return $this->display(__FILE__, 'payment.tpl');
+        } catch (Throwable $exception) {
+            return '';
+        }
     }
 
     /**
@@ -147,7 +151,7 @@ class Plugnpayapi extends PaymentModule
      *
      * @param array $params
      *
-     * @return string|false
+     * @return string
      */
     public function hookPayment($params)
     {
@@ -178,14 +182,14 @@ class Plugnpayapi extends PaymentModule
         }
 
         $order = $params['objOrder'];
-        $this->context->smarty->assign([
+        $this->smarty->assign([
             'plugnpayapi_status' => (int) $order->getCurrentState() === (int) Configuration::get('PS_OS_ERROR')
                 ? 'failed'
                 : 'ok',
             'plugnpayapi_order_reference' => (string) $order->reference,
         ]);
 
-        return $this->display(__FILE__, 'views/templates/hook/order_confirmation.tpl');
+        return $this->display(__FILE__, 'order_confirmation.tpl');
     }
 
     /**
@@ -217,9 +221,14 @@ class Plugnpayapi extends PaymentModule
             return false;
         }
 
-        $currencyId = (int) $cart->id_currency;
-        foreach (Currency::getPaymentCurrencies((int) $this->id) as $currencyModule) {
-            if ($currencyId === (int) $currencyModule['id_currency']) {
+        $currency = new Currency((int) $cart->id_currency);
+        $allowedCurrencies = $this->getCurrency((int) $cart->id_currency);
+        if (!Validate::isLoadedObject($currency) || !is_array($allowedCurrencies)) {
+            return false;
+        }
+
+        foreach ($allowedCurrencies as $allowedCurrency) {
+            if ((int) $currency->id === (int) $allowedCurrency['id_currency']) {
                 return true;
             }
         }
@@ -242,14 +251,19 @@ class Plugnpayapi extends PaymentModule
     public function getSuccessOrderStateId()
     {
         if ($this->getAuthType() === 'authonly') {
-            return (int) Configuration::get('PS_OS_PREPARATION');
+            $stateId = (int) Configuration::get('PS_OS_PREPARATION');
+        } else {
+            $stateId = (int) Configuration::get(self::CONFIG_ORDER_STATUS_ID);
         }
 
-        $configuredState = (int) Configuration::get(self::CONFIG_ORDER_STATUS_ID);
+        if ($stateId <= 0) {
+            $stateId = (int) Configuration::get('PS_OS_PAYMENT');
+        }
+        if ($stateId <= 0) {
+            $stateId = (int) Configuration::get('PS_OS_PREPARATION');
+        }
 
-        return $configuredState > 0
-            ? $configuredState
-            : (int) Configuration::get('PS_OS_PAYMENT');
+        return $stateId;
     }
 
     public function getApiClient()
@@ -313,7 +327,7 @@ class Plugnpayapi extends PaymentModule
             'state' => $deliveryState,
             'zip' => (string) $deliveryAddress->postcode,
             'country' => $deliveryCountry,
-            'shipping' => number_format((float) $cart->getOrderShippingCost(), 2, '.', ''),
+            'shipping' => number_format((float) $cart->getOrderTotal(true, Cart::ONLY_SHIPPING), 2, '.', ''),
             'tax' => number_format(
                 (float) $cart->getOrderTotal(true, Cart::BOTH)
                 - (float) $cart->getOrderTotal(false, Cart::BOTH),
