@@ -6,7 +6,7 @@
  * @license AFL-3.0
  */
 
-if (!defined('_PS_VERSION_')) {
+if (!defined('_TB_VERSION_') && !defined('_PS_VERSION_')) {
     exit;
 }
 
@@ -179,23 +179,18 @@ class Plugnpayapi extends PaymentModule
 
     public function isSecureRequest()
     {
-        return (bool) Configuration::get('PS_SSL_ENABLED')
-            && (
-                (method_exists('Tools', 'usingSecureMode') && Tools::usingSecureMode())
-                || (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
-            );
+        return $this->requestUsesHttps();
     }
 
-    public function checkCurrency(Cart $cart)
+    public function checkCurrency($cart)
     {
-        $currency = new Currency((int) $cart->id_currency);
-        $allowedCurrencies = $this->getCurrency((int) $cart->id_currency);
-        if (!Validate::isLoadedObject($currency) || !is_array($allowedCurrencies)) {
+        if (!Validate::isLoadedObject($cart)) {
             return false;
         }
 
-        foreach ($allowedCurrencies as $allowedCurrency) {
-            if ((int) $currency->id === (int) $allowedCurrency['id_currency']) {
+        $currencyId = (int) $cart->id_currency;
+        foreach (Currency::getPaymentCurrencies((int) $this->id) as $currencyModule) {
+            if ($currencyId === (int) $currencyModule['id_currency']) {
                 return true;
             }
         }
@@ -346,9 +341,29 @@ class Plugnpayapi extends PaymentModule
     {
         return $this->active
             && $this->isConfigured()
-            && $this->isSecureRequest()
+            && $this->isPaymentEnvironmentAvailable()
             && Validate::isLoadedObject($cart)
             && $this->checkCurrency($cart);
+    }
+
+    private function isPaymentEnvironmentAvailable()
+    {
+        return $this->requestUsesHttps() || (bool) Configuration::get('PS_SSL_ENABLED');
+    }
+
+    private function requestUsesHttps()
+    {
+        if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+            return true;
+        }
+
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])
+            && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https'
+        ) {
+            return true;
+        }
+
+        return method_exists('Tools', 'usingSecureMode') && Tools::usingSecureMode();
     }
 
     private function getStateCode($stateId)
@@ -447,7 +462,7 @@ class Plugnpayapi extends PaymentModule
             . '</div>'
             . '<p>' . $this->l('Accept credit cards via PlugnPay Remote API. Card data is collected on your storefront and posted from your server to pnpremote.cgi.') . '</p>'
             . '<ul>'
-            . '<li>' . $this->l('Requires store HTTPS (production only).') . '</li>'
+            . '<li>' . $this->l('Requires store HTTPS (production only). Before enabling SSL on all pages, set the shop SSL URL to https:// in Preferences > SEO & URLs.') . '</li>'
             . '<li>' . $this->l('Requires PHP cURL with SSL.') . '</li>'
             . '<li>' . $this->l('Use your PlugnPay publisher-name and Remote Client Password (not your admin login password).') . '</li>'
             . '<li>' . $this->l('Capture, void, and refund are done in PlugnPay Merchant Admin — not from thirty bees.') . '</li>'

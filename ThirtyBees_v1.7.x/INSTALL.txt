@@ -36,3 +36,17 @@ Important
 This module collects cardholder data on the store server and increases PCI DSS
 scope. Do not install it on a storefront that is not HTTPS-only. Never place
 real card details in screenshots, support tickets, or debug logs.
+
+SSL and checkout redirect loops
+-------------------------------
+If checkout pages such as order?step=1 fail to load or the browser reports
+"too many redirects" after enabling SSL:
+
+1. In Preferences > SEO & URLs, set the SSL shop domain to the same host as
+   your storefront, using https:// (for example https://example.com/shop/).
+2. Ensure PHP can detect HTTPS. Behind Apache or a reverse proxy, configure
+   the web server to pass HTTPS=on or X-Forwarded-Proto: https to PHP.
+3. Do not enable "Enable SSL on all pages" until both steps above are correct.
+
+Symptom: HTTPS requests redirect to http:// for order pages while the web
+server redirects HTTP back to HTTPS, causing an infinite loop.
