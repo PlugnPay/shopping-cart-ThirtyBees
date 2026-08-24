@@ -1,0 +1,6 @@
+_archive/
+*.swp
+*~
+
+.DS_Store
+Thumbs.db

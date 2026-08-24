@@ -1,52 +1,66 @@
-PlugnPay Remote API for thirty bees 1.7.x
-=========================================
+====================================================
+PlugnPay Remote API Module (Credit Card Payments)
+Payment Module for thirty bees v1.7.x — module v1.0.1
+====================================================
 
-Requirements
-------------
+***** IMPORTANT NOTES *****
+This module is provided "AS IS". Limited technical support assistance
+will be given to help diagnose/address problems with this module.
+
+This module requires SSL and PHP cURL. thirty bees collects credit card
+information on your store's billing pages. Authorization is performed
+via PlugnPay's Remote API (authonly or authpostauth). Capture, void,
+and refund are performed in PlugnPay Merchant Admin — not from thirty bees.
+
+PCI: Collecting cards onsite increases PCI scope. For hosted (lower
+PCI) checkout, use PlugnPay Smart Screens v2 (see INSTALL_SS2.txt).
+***************************
+
+To Install:
+
+1. Preferred: In Back Office → Modules and Services →
+   "Upload a module", upload thirtybees_1.7.0_api_module.zip.
+
+   Or unzip thirtybees_1.7.0_api_module.zip into your thirty bees
+   modules directory so you have:
+     modules/plugnpayapi/...
+
+   From this repo's development tree that is:
+     ThirtyBees_v1.7.x/src/modules/plugnpayapi/ → <shop>/modules/plugnpayapi/
+
+2. In Back Office → Modules and Services, install/enable
+   "PlugnPay Remote API".
+
+3. Configure Publisher Name + Remote Client Password. Choose Authorization
+   Type (authonly or authpostauth). Select allowed currencies under
+   Payment preferences / module currency restrictions.
+
+Requirements:
+
 - thirty bees 1.7.0
 - PHP 8.0 or later with cURL and OpenSSL
 - HTTPS enabled for the storefront
 - PlugnPay publisher name
 - PlugnPay Remote Client Password (not the Merchant Admin password)
 
-Installation
-------------
-1. Copy src/modules/plugnpayapi to {thirty_bees_root}/modules/plugnpayapi.
-2. Sign in to the thirty bees back office.
-3. Open Modules and Services, find "PlugnPay Remote API", and select Install.
-4. Open Configure and enter the Publisher Name and Remote Client Password.
-5. Select authonly or authpostauth and configure the remaining options.
-6. In Payment > Preferences, verify the module's currency, country, customer
-   group, and carrier restrictions.
-7. Place an order over HTTPS and verify the result in PlugnPay Merchant Admin.
+SSL and checkout redirect loops:
 
-Upgrade
--------
-Back up the store and module configuration, replace the plugnpayapi directory,
-clear the thirty bees cache, and review the module settings.
+If checkout pages such as order?step=1 fail to load or the browser
+reports "too many redirects" after enabling SSL:
 
-Uninstall
----------
-Use Modules and Services > PlugnPay Remote API > Uninstall. Uninstall removes
-the module's PLUGNPAY_API_* configuration values. Historical order and payment
-records are retained.
+1. In Preferences → SEO & URLs, set the SSL shop domain to the same
+   host as your storefront, using https://.
+2. Ensure PHP can detect HTTPS. Behind Apache or a reverse proxy,
+   pass HTTPS=on or X-Forwarded-Proto: https to PHP.
+3. Do not enable "Enable SSL on all pages" until both steps above
+   are correct.
 
-Important
----------
-This module collects cardholder data on the store server and increases PCI DSS
-scope. Do not install it on a storefront that is not HTTPS-only. Never place
-real card details in screenshots, support tickets, or debug logs.
+See the module README for full documentation, troubleshooting, and a
+manual test checklist:
+  src/modules/plugnpayapi/README.md
 
-SSL and checkout redirect loops
--------------------------------
-If checkout pages such as order?step=1 fail to load or the browser reports
-"too many redirects" after enabling SSL:
+Also see the 1.7.x package overview:
+  ThirtyBees_v1.7.x/README.md
 
-1. In Preferences > SEO & URLs, set the SSL shop domain to the same host as
-   your storefront, using https:// (for example https://example.com/shop/).
-2. Ensure PHP can detect HTTPS. Behind Apache or a reverse proxy, configure
-   the web server to pass HTTPS=on or X-Forwarded-Proto: https to PHP.
-3. Do not enable "Enable SSL on all pages" until both steps above are correct.
-
-Symptom: HTTPS requests redirect to http:// for order pages while the web
-server redirects HTTP back to HTTPS, causing an infinite loop.
+Source tree (development):
+  src/modules/plugnpayapi/
