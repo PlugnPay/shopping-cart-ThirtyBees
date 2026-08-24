@@ -40,9 +40,9 @@ class Plugnpayapi extends PaymentModule
     {
         $this->name = 'plugnpayapi';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.5';
+        $this->version = '1.0.7';
         $this->author = 'PlugnPay Technologies';
-        $this->need_instance = 0;
+        $this->need_instance = 1;
         $this->bootstrap = true;
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
@@ -74,7 +74,8 @@ class Plugnpayapi extends PaymentModule
             && $this->registerHook('paymentReturn')
             && $this->registerHook('header')
             && $this->registerHook('displayHeader')
-            && $this->installConfiguration();
+            && $this->installConfiguration()
+            && $this->ensurePaymentRestrictions();
     }
 
     public function uninstall()
@@ -88,6 +89,8 @@ class Plugnpayapi extends PaymentModule
 
     public function getContent()
     {
+        $this->ensurePaymentRestrictions();
+
         if (isset($this->context->controller)) {
             $this->context->controller->addCSS($this->_path . 'views/css/plugnpayapi.css');
         }
@@ -101,8 +104,8 @@ class Plugnpayapi extends PaymentModule
     }
 
     /**
-     * Classic checkout hook used by Authorize.net AIM and official bankwire.
-     * Always returns a string. Never return an array or false (PHP 8 TypeError).
+     * Classic checkout hook used by thirty bees Authorize.net AIM.
+     * Always returns HTML. Do not return false or an array (PHP 8 TypeError).
      *
      * @param array $params
      *
@@ -110,7 +113,73 @@ class Plugnpayapi extends PaymentModule
      */
     public function hookPayment($params)
     {
-        return $this->renderPaymentOption($params);
+        if (!$this->active) {
+            return '';
+        }
+
+        try {
+            $currencyId = isset($this->context->cookie->id_currency)
+                ? (int) $this->context->cookie->id_currency
+                : 0;
+            $currency = Currency::getCurrencyInstance($currencyId);
+            if (!Validate::isLoadedObject($currency) && isset($this->context->currency)) {
+                $currency = $this->context->currency;
+            }
+            if (!Validate::isLoadedObject($currency)) {
+                return $this->getPaymentFallbackHtml();
+            }
+
+            $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
+            $customer = $this->resolveCheckoutCustomer($cart);
+            $cardOwner = '';
+            if (Validate::isLoadedObject($customer)) {
+                $cardOwner = trim($customer->firstname . ' ' . $customer->lastname);
+            }
+
+            $months = [];
+            for ($month = 1; $month <= 12; ++$month) {
+                $months[] = sprintf('%02d', $month);
+            }
+
+            $years = [];
+            $currentYear = (int) date('Y');
+            for ($offset = 0; $offset <= 15; ++$offset) {
+                $years[] = substr((string) ($currentYear + $offset), -2);
+            }
+
+            $checkoutToken = '';
+            if ($cart instanceof Cart && Validate::isLoadedObject($cart)) {
+                $checkoutToken = $this->getCheckoutToken($cart);
+            }
+
+            $vars = [
+                'plugnpayapi_action' => $this->getValidationUrl(),
+                'plugnpayapi_card_owner' => $cardOwner,
+                'plugnpayapi_checkout_token' => $checkoutToken,
+                'plugnpayapi_error' => (string) Tools::getValue('plugnpayapi_error'),
+                'plugnpayapi_months' => $months,
+                'plugnpayapi_years' => $years,
+                'plugnpayapi_use_cvv' => Configuration::get(self::CONFIG_USE_CVV) === 'True' ? 1 : 0,
+                'plugnpayapi_secure' => $this->isSecureRequest() ? 1 : 0,
+            ];
+
+            // AIM assigns on context Smarty; bankwire uses the module Smarty_Data object.
+            $this->context->smarty->assign($vars);
+            $this->smarty->assign($vars);
+
+            $html = $this->display(__FILE__, 'views/templates/hook/payment.tpl');
+
+            return is_string($html) && $html !== ''
+                ? $html
+                : $this->getPaymentFallbackHtml();
+        } catch (Throwable $exception) {
+            $this->logShopMessage(
+                'PlugnPay Remote API payment hook failed: ' . $exception->getMessage(),
+                3
+            );
+
+            return $this->getPaymentFallbackHtml();
+        }
     }
 
     /**
@@ -131,6 +200,7 @@ class Plugnpayapi extends PaymentModule
     public function hookDisplayHeader()
     {
         try {
+            $this->ensureCurrentCheckoutRestrictions();
             if (isset($this->context->controller)) {
                 $this->context->controller->addCSS($this->_path . 'views/css/plugnpayapi.css');
             }
@@ -394,57 +464,154 @@ class Plugnpayapi extends PaymentModule
     }
 
     /**
-     * Render the onsite card form. HTTPS is not required to list the method.
+     * Restore currency/country/carrier/group rows so displayPayment is not filtered out.
      *
-     * @param array $params
+     * @return bool
+     */
+    public function ensurePaymentRestrictions()
+    {
+        $ok = true;
+
+        try {
+            $this->unregisterHook('displayPaymentEU');
+        } catch (Throwable $ignored) {
+        }
+
+        $ok = $this->registerHook('payment')
+            && $this->registerHook('paymentReturn')
+            && $this->registerHook('header')
+            && $ok;
+
+        if (method_exists($this, 'addCheckboxCurrencyRestrictionsForModule')) {
+            $ok = $this->addCheckboxCurrencyRestrictionsForModule() && $ok;
+        }
+        if (method_exists($this, 'addCheckboxCountryRestrictionsForModule')) {
+            $ok = $this->addCheckboxCountryRestrictionsForModule() && $ok;
+        }
+        if (method_exists($this, 'addCheckboxCarrierRestrictionsForModule')) {
+            $ok = $this->addCheckboxCarrierRestrictionsForModule() && $ok;
+        }
+
+        try {
+            $hasGroup = (int) Db::getInstance()->getValue(
+                'SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'module_group` WHERE `id_module` = ' . (int) $this->id
+            );
+            if ($hasGroup === 0 && method_exists('Group', 'addRestrictionsForModule')) {
+                $ok = Group::addRestrictionsForModule((int) $this->id, Shop::getShops(true, null, true)) && $ok;
+            }
+        } catch (Throwable $ignored) {
+        }
+
+        return $ok;
+    }
+
+    /**
+     * Header runs before displayPayment. Insert the current cart's restriction
+     * rows so thirty bees does not hide this module from HOOK_PAYMENT.
+     */
+    private function ensureCurrentCheckoutRestrictions()
+    {
+        $moduleId = (int) $this->id;
+        $shopId = isset($this->context->shop) ? (int) $this->context->shop->id : 0;
+        if ($moduleId <= 0 || $shopId <= 0) {
+            return;
+        }
+
+        $db = Db::getInstance();
+
+        if (isset($this->context->currency) && Validate::isLoadedObject($this->context->currency)) {
+            $db->insert(
+                'module_currency',
+                [
+                    'id_module' => $moduleId,
+                    'id_shop' => $shopId,
+                    'id_currency' => (int) $this->context->currency->id,
+                ],
+                false,
+                true,
+                Db::INSERT_IGNORE
+            );
+        }
+
+        if (isset($this->context->country) && Validate::isLoadedObject($this->context->country)) {
+            $db->insert(
+                'module_country',
+                [
+                    'id_module' => $moduleId,
+                    'id_shop' => $shopId,
+                    'id_country' => (int) $this->context->country->id,
+                ],
+                false,
+                true,
+                Db::INSERT_IGNORE
+            );
+        }
+
+        if (isset($this->context->cart) && Validate::isLoadedObject($this->context->cart)
+            && (int) $this->context->cart->id_carrier > 0
+        ) {
+            $carrier = new Carrier((int) $this->context->cart->id_carrier);
+            if (Validate::isLoadedObject($carrier) && (int) $carrier->id_reference > 0) {
+                $db->insert(
+                    'module_carrier',
+                    [
+                        'id_module' => $moduleId,
+                        'id_shop' => $shopId,
+                        'id_reference' => (int) $carrier->id_reference,
+                    ],
+                    false,
+                    true,
+                    Db::INSERT_IGNORE
+                );
+            }
+        }
+
+        if (isset($this->context->customer) && method_exists($this->context->customer, 'getGroups')) {
+            foreach ($this->context->customer->getGroups() as $groupId) {
+                $db->insert(
+                    'module_group',
+                    [
+                        'id_module' => $moduleId,
+                        'id_shop' => $shopId,
+                        'id_group' => (int) $groupId,
+                    ],
+                    false,
+                    true,
+                    Db::INSERT_IGNORE
+                );
+            }
+        }
+    }
+
+    /**
+     * Relative module front-controller URL, same idea as AIM posting to {$module_dir}validation.php.
      *
      * @return string
      */
-    private function renderPaymentOption($params)
+    private function getValidationUrl()
     {
         try {
-            $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
-            if (!$this->canDisplayForCart($cart)) {
-                return '';
+            if (isset($this->context->link)) {
+                $ssl = (bool) Configuration::get('PS_SSL_ENABLED');
+
+                return $this->context->link->getModuleLink($this->name, 'validation', [], $ssl);
             }
-
-            $customer = $this->resolveCheckoutCustomer($cart);
-            $cardOwner = '';
-            if (Validate::isLoadedObject($customer)) {
-                $cardOwner = trim($customer->firstname . ' ' . $customer->lastname);
-            }
-
-            $months = [];
-            for ($month = 1; $month <= 12; ++$month) {
-                $months[] = sprintf('%02d', $month);
-            }
-
-            $years = [];
-            $currentYear = (int) date('Y');
-            for ($offset = 0; $offset <= 15; ++$offset) {
-                $years[] = substr((string) ($currentYear + $offset), -2);
-            }
-
-            $this->smarty->assign([
-                'plugnpayapi_action' => $this->context->link->getModuleLink($this->name, 'validation', [], true),
-                'plugnpayapi_card_owner' => $cardOwner,
-                'plugnpayapi_checkout_token' => $this->getCheckoutToken($cart),
-                'plugnpayapi_error' => (string) Tools::getValue('plugnpayapi_error'),
-                'plugnpayapi_months' => $months,
-                'plugnpayapi_years' => $years,
-                'plugnpayapi_use_cvv' => Configuration::get(self::CONFIG_USE_CVV) === 'True' ? 1 : 0,
-                'plugnpayapi_secure' => $this->isSecureRequest() ? 1 : 0,
-            ]);
-
-            return $this->renderHookTemplate('payment.tpl');
-        } catch (Throwable $exception) {
-            $this->logShopMessage(
-                'PlugnPay Remote API payment hook failed: ' . $exception->getMessage(),
-                3
-            );
-
-            return '';
+        } catch (Throwable $ignored) {
         }
+
+        return __PS_BASE_URI__ . 'index.php?fc=module&module=' . $this->name . '&controller=validation';
+    }
+
+    /**
+     * Keep HOOK_PAYMENT non-empty if the Smarty template cannot be rendered.
+     *
+     * @return string
+     */
+    private function getPaymentFallbackHtml()
+    {
+        return '<div class="plugnpayapi-wrapper"><p class="plugnpayapi-title">'
+            . htmlspecialchars($this->l('Secured card payment'), ENT_QUOTES, 'UTF-8')
+            . '</p></div>';
     }
 
     /**

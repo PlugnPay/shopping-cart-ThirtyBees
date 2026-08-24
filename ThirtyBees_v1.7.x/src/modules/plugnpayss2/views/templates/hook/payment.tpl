@@ -1,20 +1,22 @@
 {*
- * PlugnPay Smart Screens v2 payment option.
+ * PlugnPay Smart Screens v2: hosted checkout payment option.
  *}
-<div class="plugnpayss2-payment">
-  {if $plugnpayss2_error}
-    <div class="plugnpayss2-error">
-      {$plugnpayss2_error|escape:'htmlall':'UTF-8'}
-    </div>
-  {/if}
+<div class="row">
+  <div class="col-xs-12">
+    {if $plugnpayss2_error}
+      <p class="alert alert-danger">
+        {$plugnpayss2_error|escape:'htmlall':'UTF-8'}
+      </p>
+    {/if}
 
-  <p class="payment_module">
-    <a href="{$plugnpayss2_redirect_url|escape:'htmlall':'UTF-8'}">
-      {l s='Pay securely by credit card with PlugnPay Smart Screens' mod='plugnpayss2'}
-    </a>
-  </p>
-
-  <p class="plugnpayss2-notice">
-    {l s='You will be redirected to PlugnPay to complete payment. Card details are collected on the hosted payment page.' mod='plugnpayss2'}
-  </p>
+    <p class="payment_module">
+      <a
+        class="plugnpayss2"
+        href="{$plugnpayss2_redirect_url|escape:'htmlall':'UTF-8'}"
+        title="{l s='Pay securely by credit card with PlugnPay' mod='plugnpayss2'}"
+      >
+        {l s='Pay securely by credit card with PlugnPay' mod='plugnpayss2'}
+      </a>
+    </p>
+  </div>
 </div>

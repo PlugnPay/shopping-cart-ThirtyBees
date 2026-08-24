@@ -1,6 +1,6 @@
 # PlugnPay Smart Screens v2 Module for thirty bees 1.7.x
 
-**Version:** 1.0.1
+**Version:** 1.0.2
 
 Hosted **authorization-only** payments via PlugnPay Smart Screens v2:
 
@@ -60,7 +60,7 @@ Preparation/Pending state until settled in PlugnPay Admin.
 
 ## Checkout flow
 
-1. Customer selects **PlugnPay Smart Screens v2** on the payment step.
+1. Customer clicks **Pay securely by credit card with PlugnPay** on the payment step.
 2. Customer is sent to the module redirect controller, which auto-POSTs to
    `https://pay1.plugnpay.com/pay/`.
 3. Customer completes payment on PlugnPay Smart Screens (authorization only).

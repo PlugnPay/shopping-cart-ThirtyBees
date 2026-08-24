@@ -42,7 +42,7 @@ class Plugnpayss2 extends PaymentModule
     {
         $this->name = 'plugnpayss2';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.1';
+        $this->version = '1.0.2';
         $this->author = 'PlugnPay Technologies';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -66,8 +66,10 @@ class Plugnpayss2 extends PaymentModule
     public function install()
     {
         return parent::install()
+            && $this->registerHook('payment')
             && $this->registerHook('displayPayment')
             && $this->registerHook('paymentReturn')
+            && $this->registerHook('header')
             && $this->registerHook('displayHeader')
             && $this->installConfiguration()
             && $this->installDb();
@@ -95,21 +97,35 @@ class Plugnpayss2 extends PaymentModule
     /**
      * @param array $params
      *
-     * @return string|false
+     * @return string
      */
     public function hookDisplayPayment($params)
     {
         $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
         if (!$this->canDisplayForCart($cart)) {
-            return false;
+            return '';
         }
 
-        $this->context->smarty->assign([
-            'plugnpayss2_redirect_url' => $this->context->link->getModuleLink($this->name, 'redirect', [], true),
-            'plugnpayss2_error' => (string) Tools::getValue('plugnpayss2_error'),
-        ]);
+        try {
+            $ssl = (bool) Configuration::get('PS_SSL_ENABLED');
+            $vars = [
+                'plugnpayss2_redirect_url' => $this->context->link->getModuleLink(
+                    $this->name,
+                    'redirect',
+                    [],
+                    $ssl
+                ),
+                'plugnpayss2_error' => (string) Tools::getValue('plugnpayss2_error'),
+            ];
+            $this->context->smarty->assign($vars);
+            $this->smarty->assign($vars);
 
-        return $this->display(__FILE__, 'views/templates/hook/payment.tpl');
+            $html = $this->display(__FILE__, 'views/templates/hook/payment.tpl');
+
+            return is_string($html) ? $html : '';
+        } catch (Throwable $exception) {
+            return '';
+        }
     }
 
     /**
@@ -117,7 +133,7 @@ class Plugnpayss2 extends PaymentModule
      *
      * @param array $params
      *
-     * @return string|false
+     * @return string
      */
     public function hookPayment($params)
     {

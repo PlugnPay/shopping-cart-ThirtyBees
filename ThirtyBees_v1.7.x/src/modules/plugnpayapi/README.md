@@ -1,6 +1,6 @@
 # PlugnPay Remote API Module for thirty bees 1.7.x
 
-**Version:** 1.0.5
+**Version:** 1.0.7
 
 Accept credit cards with PlugnPay's production Remote API. Checkout remains on
 the merchant storefront, and the module posts the authorization request to
@@ -68,8 +68,8 @@ Remote API endpoint.
 
 ## Checkout flow
 
-1. The `payment` / `displayPayment` hooks display the card form when the module is
-   active, configured, and currency-eligible. Missing HTTPS does not hide the method.
+1. The payment step shows an onsite card form (name, number, expiry, optional CVV)
+   when the module is active. Missing HTTPS does not hide the form.
 2. The validation controller verifies the active cart, customer, secure
    checkout token, currency, addresses, card number, expiration, and CVV.
 3. The API client posts a form-encoded request with SSL peer and host
@@ -103,16 +103,17 @@ Do not weaken these protections or add raw request/response dumps elsewhere.
 
 ## Troubleshooting
 
-- **Module does not appear:** verify it is enabled, Publisher Name and Remote
-  Client Password are saved, and it is allowed in Modules and Services →
-  Payment (currency, country, and carrier restrictions). Upload 1.0.5, click
-  Upgrade if thirty bees offers it, then clear Smarty cache.
+- **Module does not appear / “No payment modules have been installed.”:**
+  upload 1.0.6 and click Upgrade (or open the module configuration page).
+  Version 1.0.6 matches Authorize.net AIM: it lists the card form whenever the
+  module is enabled, and restores currency/country/carrier/group rows that
+  thirty bees uses to hide `displayPayment` modules. Then clear Smarty cache.
 - **cURL warning:** enable PHP cURL and verify outbound TCP 443 access.
 - **Empty response:** check DNS, firewall, proxy, CA certificates, and outbound
   HTTPS connectivity.
 - **Decline:** review the customer-safe gateway message and the matching
   transaction in PlugnPay Merchant Admin.
-- **HTTP 500 on payment step:** upload 1.0.5 and upgrade. Version 1.0.3
+- **HTTP 500 on payment step:** upload 1.0.6 and upgrade. Version 1.0.3
   registered `displayPaymentEU` (array return) which PHP 8 can fatal when
   concatenated as a string. Do not resubmit a card if the gateway already
   approved it.

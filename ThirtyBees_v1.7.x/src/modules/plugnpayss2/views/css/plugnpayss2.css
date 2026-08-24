@@ -1,19 +1,20 @@
-.plugnpayss2-payment {
-  margin-bottom: 1rem;
+.payment_module a.plugnpayss2 {
+  background: #fbfbfb url("../../logo.png") 15px 12px no-repeat;
+  background-size: 64px auto;
 }
 
-.plugnpayss2-error {
-  background: #f2dede;
-  border: 1px solid #ebccd1;
-  color: #a94442;
-  margin: 0.7em;
-  padding: 0.8rem;
-}
-
-.plugnpayss2-notice {
-  color: #666;
-  font-size: 0.9em;
-  margin: 0.7em;
+.payment_module a.plugnpayss2:after {
+  color: #777;
+  content: "\f054";
+  display: block;
+  font-family: "FontAwesome";
+  font-size: 25px;
+  height: 22px;
+  margin-top: -11px;
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  width: 14px;
 }
 
 .plugnpayss2-redirect {

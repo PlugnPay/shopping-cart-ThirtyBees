@@ -1,5 +1,10 @@
 PlugnPay Smart Screens v2 for thirty bees
 
+Version 1.0.2 - 2026-08-24
+--------------------------------
+- Checkout uses the niara payment-method button with the PlugnPay icon and
+  "Pay securely by credit card with PlugnPay" (hosted redirect).
+
 Version 1.0.1 - 2026-08-24
 --------------------------------
 - Registered the canonical displayPayment, paymentReturn, and displayHeader hooks.

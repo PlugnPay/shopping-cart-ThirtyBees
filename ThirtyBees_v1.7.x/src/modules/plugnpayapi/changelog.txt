@@ -1,5 +1,16 @@
 PlugnPay Remote API for thirty bees
 
+Version 1.0.7 - 2026-08-24
+--------------------------------
+- Payment step shows an onsite card form (Authorize.net AIM pattern), not a hosted-checkout button.
+
+Version 1.0.6 - 2026-08-24
+--------------------------------
+- Matched thirty bees Authorize.net AIM display: always render the card form from hookPayment.
+- Stopped hiding the method when Publisher/password were unset or a template error was caught.
+- Header hook inserts missing currency/country/carrier/group rows before HOOK_PAYMENT is built.
+- Form action no longer forces an SSL module link (AIM posts to a relative module URL).
+
 Version 1.0.5 - 2026-08-24
 --------------------------------
 - Matched Authorize.net AIM and official bankwire: hookPayment plus displayPayment, both return HTML strings.
