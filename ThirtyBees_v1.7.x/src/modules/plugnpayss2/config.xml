@@ -2,7 +2,7 @@
 <module>
   <name>plugnpayss2</name>
   <displayName><![CDATA[PlugnPay Smart Screens v2]]></displayName>
-  <version><![CDATA[1.0.1]]></version>
+  <version><![CDATA[1.0.2]]></version>
   <description><![CDATA[Accept credit cards via PlugnPay Smart Screens v2 hosted checkout (authorization-only).]]></description>
   <author><![CDATA[PlugnPay Technologies]]></author>
   <tab><![CDATA[payments_gateways]]></tab>

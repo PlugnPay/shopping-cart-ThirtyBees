@@ -25,3 +25,17 @@
 .plugnpayss2-redirect h1 {
   font-size: 1.4rem;
 }
+
+.plugnpayss2-admin-brand {
+  margin-bottom: 1rem;
+}
+
+.plugnpayss2-admin-logo {
+  margin-bottom: 1rem;
+}
+
+.plugnpayss2-admin-logo img {
+  display: block;
+  height: auto;
+  max-width: 320px;
+}

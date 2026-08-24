@@ -42,7 +42,7 @@ class Plugnpayss2 extends PaymentModule
     {
         $this->name = 'plugnpayss2';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.1';
+        $this->version = '1.0.2';
         $this->author = 'PlugnPay Technologies';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -84,6 +84,10 @@ class Plugnpayss2 extends PaymentModule
 
     public function getContent()
     {
+        if (isset($this->context->controller)) {
+            $this->context->controller->addCSS($this->_path . 'views/css/plugnpayss2.css');
+        }
+
         $output = '';
         if (Tools::isSubmit('submitPlugnpayss2Module')) {
             $output .= $this->saveConfiguration();
@@ -571,9 +575,26 @@ class Plugnpayss2 extends PaymentModule
 
     private function renderInformation()
     {
-        return '<div class="alert alert-info">'
-            . '<strong>' . $this->l('Hosted checkout:') . '</strong> '
-            . $this->l('Customers are redirected to PlugnPay Smart Screens v2. Card data is not collected on your server. Transactions are authorization-only; settle in PlugnPay Merchant Admin.')
+        $logoUrl = $this->_path . 'views/img/plugnpay_logo.png';
+
+        return '<div class="panel plugnpayss2-admin-brand">'
+            . '<div class="plugnpayss2-admin-logo">'
+            . '<img src="' . Tools::safeOutput($logoUrl) . '" alt="PlugnPay" />'
+            . '</div>'
+            . '<p>' . $this->l('Accept credit cards via PlugnPay Smart Screens v2 hosted checkout (authorization-only).') . '</p>'
+            . '<ul>'
+            . '<li>' . $this->l('Requires store HTTPS (production only). Before enabling SSL on all pages, set the shop SSL URL to https:// in Preferences > SEO & URLs.') . '</li>'
+            . '<li>' . $this->l('Customers are redirected to PlugnPay. Card data is not collected on your server.') . '</li>'
+            . '<li>' . $this->l('Capture, void, and refund are done in PlugnPay Merchant Admin — not from thirty bees.') . '</li>'
+            . '</ul>'
+            . '<p>'
+            . '<a class="btn btn-default" rel="noreferrer noopener" target="_blank" href="https://pay1.plugnpay.com/admin/">'
+            . $this->l('PlugnPay Merchant Admin')
+            . '</a> '
+            . '<a class="btn btn-default" rel="noreferrer noopener" target="_blank" href="https://docs.plugnpay.com/">'
+            . $this->l('Documentation')
+            . '</a>'
+            . '</p>'
             . '</div>';
     }
 

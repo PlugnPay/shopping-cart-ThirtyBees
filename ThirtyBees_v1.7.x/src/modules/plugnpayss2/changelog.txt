@@ -1,5 +1,9 @@
 PlugnPay Smart Screens v2 for thirty bees
 
+Version 1.0.2 - 2026-08-24
+--------------------------------
+- Added the same module icon and admin wordmark used by the Remote API module.
+
 Version 1.0.1 - 2026-08-24
 --------------------------------
 - Registered the canonical displayPayment, paymentReturn, and displayHeader hooks.

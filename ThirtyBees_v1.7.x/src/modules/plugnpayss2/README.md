@@ -1,6 +1,6 @@
 # PlugnPay Smart Screens v2 Module for thirty bees 1.7.x
 
-**Version:** 1.0.1
+**Version:** 1.0.2
 
 Hosted **authorization-only** payments via PlugnPay Smart Screens v2:
 
