@@ -1,6 +1,6 @@
 # PlugnPay Remote API Module for thirty bees 1.7.x
 
-**Version:** 1.0.7
+**Version:** 1.0.8
 
 Accept credit cards with PlugnPay's production Remote API. Checkout remains on
 the merchant storefront, and the module posts the authorization request to
@@ -68,8 +68,9 @@ Remote API endpoint.
 
 ## Checkout flow
 
-1. The payment step shows an onsite card form (name, number, expiry, optional CVV)
-   when the module is active. Missing HTTPS does not hide the form.
+1. On checkout step 5 (Payments), the customer sees a **Secured card payment**
+   box with cardholder name, number, expiration, optional CVV, and
+   **Complete Purchase**. This is not a hosted-checkout button.
 2. The validation controller verifies the active cart, customer, secure
    checkout token, currency, addresses, card number, expiration, and CVV.
 3. The API client posts a form-encoded request with SSL peer and host
@@ -104,22 +105,25 @@ Do not weaken these protections or add raw request/response dumps elsewhere.
 ## Troubleshooting
 
 - **Module does not appear / “No payment modules have been installed.”:**
-  upload 1.0.6 and click Upgrade (or open the module configuration page).
-  Version 1.0.6 matches Authorize.net AIM: it lists the card form whenever the
-  module is enabled, and restores currency/country/carrier/group rows that
-  thirty bees uses to hide `displayPayment` modules. Then clear Smarty cache.
+  confirm the module is enabled, open its configuration page once (restores
+  currency/country/carrier/group rows), and clear Smarty cache. Check Payment
+  Preferences restrictions. Upload 1.0.8 and click Upgrade if an older zip
+  is installed.
+- **Only the “Secured card payment” heading, no card fields:** upload 1.0.8,
+  Upgrade, and clear Smarty cache. Older templates used HTML `pattern="{12,23}"`
+  which Smarty treated as tags and dropped the form.
 - **cURL warning:** enable PHP cURL and verify outbound TCP 443 access.
 - **Empty response:** check DNS, firewall, proxy, CA certificates, and outbound
   HTTPS connectivity.
 - **Decline:** review the customer-safe gateway message and the matching
   transaction in PlugnPay Merchant Admin.
-- **HTTP 500 on payment step:** upload 1.0.6 and upgrade. Version 1.0.3
-  registered `displayPaymentEU` (array return) which PHP 8 can fatal when
-  concatenated as a string. Do not resubmit a card if the gateway already
-  approved it.
+- **HTTP 500 on payment step:** upload 1.0.8 and upgrade. Do not resubmit a
+  card if the gateway already approved it.
 - **Approved but order creation failed:** do not resubmit. Use the displayed
   gateway reference to reconcile the transaction in Merchant Admin and review
   the thirty bees log.
+- **Too many redirects after enabling SSL:** set the shop SSL URL to `https://`
+  in Preferences → SEO & URLs before enabling SSL in Preferences → General.
 
 Connectivity can be checked from the store server with merchant-approved test
 credentials and card data:
@@ -133,6 +137,8 @@ curl -d "publisher-name=ACCOUNT&publisher-password=REMOTE_PASSWORD&mode=auth&aut
 
 - [ ] Module installs and uninstalls without core changes.
 - [ ] All configuration values save; saved password is not displayed.
+- [ ] On Payments, the Secured card payment box shows name, number, expiry,
+      optional CVV, and Complete Purchase (not a hosted-checkout button).
 - [ ] HTTPS is required only when submitting the card form, not to list the method.
 - [ ] Module follows currency, country, group, and carrier restrictions.
 - [ ] CVV field and server validation follow the CVV setting.

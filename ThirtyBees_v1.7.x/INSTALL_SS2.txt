@@ -1,22 +1,25 @@
 ====================================================
 PlugnPay Smart Screens v2 Module (Hosted Payments)
-Payment Module for thirty bees v1.7.x — module v1.0.1
+Payment Module for thirty bees v1.7.x — module v1.0.2
 ====================================================
 
 ***** IMPORTANT NOTES *****
 This module is provided "AS IS". Limited technical support assistance
 will be given to help diagnose/address problems with this module.
 
-This module redirects customers to PlugnPay Smart Screens v2 hosted
-billing pages (https://pay1.plugnpay.com/pay/). Your store does not
-collect card data onsite.
+On checkout step 5 (Payments) the customer clicks
+"Pay securely by credit card with PlugnPay" (PlugnPay icon) and is
+redirected to PlugnPay Smart Screens v2 hosted billing pages
+(https://pay1.plugnpay.com/pay/). Your store does not collect card
+data onsite.
 
 Transactions are AUTHORIZATION-ONLY (pb_post_auth=no). Orders are
 left Preparation/Pending. Capture, void, and refund are performed in
 PlugnPay Merchant Admin — not from thirty bees.
 
 There is no public demo gateway account. Use merchant-supplied
-credentials from your PlugnPay account. HTTPS is required.
+credentials from your PlugnPay account. HTTPS is required to list
+the payment button.
 ***************************
 
 To Install:
@@ -32,14 +35,19 @@ To Install:
      ThirtyBees_v1.7.x/src/modules/plugnpayss2/ → <shop>/modules/plugnpayss2/
 
 2. In Back Office → Modules and Services, install/enable
-   "PlugnPay Smart Screens v2".
+   "PlugnPay Smart Screens v2". If thirty bees offers Upgrade, click it.
 
 3. Configure Gateway Account. Optionally enable database storage and
-   debug logging. Select allowed currencies / countries under
-   Payment preferences / module restrictions.
+   debug logging. Select allowed currencies / countries / groups /
+   carriers under Payment preferences / module restrictions.
 
-4. Place a test order using your merchant account / PlugnPay test
-   procedures.
+4. Enable storefront HTTPS: Preferences → SEO & URLs (set the shop
+   SSL URL to https://…), then Preferences → General → Enable SSL.
+   Clear Smarty cache (Preferences → Performance).
+
+5. Place a test order using your merchant account / PlugnPay test
+   procedures. On Payments you should see the icon button
+   "Pay securely by credit card with PlugnPay", not an onsite card form.
 
 Requirements:
 
@@ -49,6 +57,9 @@ Requirements:
 - PlugnPay gateway account username
 
 No Remote Client Password is required for Smart Screens v2.
+
+For onsite card entry on the Payments step, use Remote API
+(INSTALL.txt) instead of this module.
 
 See the module README for full documentation, configuration
 reference, troubleshooting, and a manual test checklist:

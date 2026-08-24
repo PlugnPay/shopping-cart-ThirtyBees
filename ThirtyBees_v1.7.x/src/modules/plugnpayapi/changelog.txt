@@ -1,5 +1,10 @@
 PlugnPay Remote API for thirty bees
 
+Version 1.0.8 - 2026-08-24
+--------------------------------
+- Fixed Smarty treating HTML pattern="{12,23}" as tags, which hid the card fields
+  and left only the "Secured card payment" heading.
+
 Version 1.0.7 - 2026-08-24
 --------------------------------
 - Payment step shows an onsite card form (Authorize.net AIM pattern), not a hosted-checkout button.

@@ -40,7 +40,7 @@ class Plugnpayapi extends PaymentModule
     {
         $this->name = 'plugnpayapi';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.7';
+        $this->version = '1.0.8';
         $this->author = 'PlugnPay Technologies';
         $this->need_instance = 1;
         $this->bootstrap = true;
@@ -118,17 +118,7 @@ class Plugnpayapi extends PaymentModule
         }
 
         try {
-            $currencyId = isset($this->context->cookie->id_currency)
-                ? (int) $this->context->cookie->id_currency
-                : 0;
-            $currency = Currency::getCurrencyInstance($currencyId);
-            if (!Validate::isLoadedObject($currency) && isset($this->context->currency)) {
-                $currency = $this->context->currency;
-            }
-            if (!Validate::isLoadedObject($currency)) {
-                return $this->getPaymentFallbackHtml();
-            }
-
+            $vars = [];
             $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
             $customer = $this->resolveCheckoutCustomer($cart);
             $cardOwner = '';
@@ -167,18 +157,18 @@ class Plugnpayapi extends PaymentModule
             $this->context->smarty->assign($vars);
             $this->smarty->assign($vars);
 
-            $html = $this->display(__FILE__, 'views/templates/hook/payment.tpl');
+            $html = $this->display(__FILE__, 'payment.tpl');
 
             return is_string($html) && $html !== ''
                 ? $html
-                : $this->getPaymentFallbackHtml();
+                : $this->getPaymentFallbackHtml($vars);
         } catch (Throwable $exception) {
             $this->logShopMessage(
                 'PlugnPay Remote API payment hook failed: ' . $exception->getMessage(),
                 3
             );
 
-            return $this->getPaymentFallbackHtml();
+            return $this->getPaymentFallbackHtml(isset($vars) ? $vars : []);
         }
     }
 
@@ -603,15 +593,91 @@ class Plugnpayapi extends PaymentModule
     }
 
     /**
-     * Keep HOOK_PAYMENT non-empty if the Smarty template cannot be rendered.
+     * Full onsite card form used if the Smarty template cannot be rendered.
+     *
+     * @param array $vars
      *
      * @return string
      */
-    private function getPaymentFallbackHtml()
+    private function getPaymentFallbackHtml(array $vars = [])
     {
-        return '<div class="plugnpayapi-wrapper"><p class="plugnpayapi-title">'
-            . htmlspecialchars($this->l('Secured card payment'), ENT_QUOTES, 'UTF-8')
-            . '</p></div>';
+        $action = isset($vars['plugnpayapi_action']) ? (string) $vars['plugnpayapi_action'] : $this->getValidationUrl();
+        $token = isset($vars['plugnpayapi_checkout_token']) ? (string) $vars['plugnpayapi_checkout_token'] : '';
+        $owner = isset($vars['plugnpayapi_card_owner']) ? (string) $vars['plugnpayapi_card_owner'] : '';
+        $error = isset($vars['plugnpayapi_error']) ? (string) $vars['plugnpayapi_error'] : '';
+        $useCvv = !empty($vars['plugnpayapi_use_cvv']);
+        $secure = !empty($vars['plugnpayapi_secure']);
+        $months = isset($vars['plugnpayapi_months']) && is_array($vars['plugnpayapi_months'])
+            ? $vars['plugnpayapi_months']
+            : [];
+        $years = isset($vars['plugnpayapi_years']) && is_array($vars['plugnpayapi_years'])
+            ? $vars['plugnpayapi_years']
+            : [];
+
+        if (!$months) {
+            for ($month = 1; $month <= 12; ++$month) {
+                $months[] = sprintf('%02d', $month);
+            }
+        }
+        if (!$years) {
+            $currentYear = (int) date('Y');
+            for ($offset = 0; $offset <= 15; ++$offset) {
+                $years[] = substr((string) ($currentYear + $offset), -2);
+            }
+        }
+
+        $e = function ($value) {
+            return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+        };
+
+        $html = '<div class="plugnpayapi-wrapper">';
+        if ($error !== '') {
+            $html .= '<p class="alert alert-danger">' . $e($error) . '</p>';
+        }
+        if (!$secure) {
+            $html .= '<p class="alert alert-warning">'
+                . $e($this->l('Credit card payment requires HTTPS. Enable SSL in Preferences > General, then submit the form.'))
+                . '</p>';
+        }
+        $html .= '<form name="plugnpayapi_form" id="plugnpayapi-form" action="' . $e($action) . '" method="post">';
+        $html .= '<p class="plugnpayapi-title">' . $e($this->l('Secured card payment')) . '</p>';
+        $html .= '<input type="hidden" name="plugnpayapi_token" value="' . $e($token) . '" />';
+        $html .= '<div class="plugnpayapi-fields">';
+        $html .= '<p class="plugnpayapi-row"><label class="plugnpayapi-label" for="plugnpayapi-card-owner">'
+            . $e($this->l('Cardholder name')) . '</label>'
+            . '<input type="text" id="plugnpayapi-card-owner" name="plugnpayapi_card_owner" value="'
+            . $e($owner) . '" maxlength="100" autocomplete="cc-name" required="required" /></p>';
+        $html .= '<p class="plugnpayapi-row"><label class="plugnpayapi-label" for="plugnpayapi-card-number">'
+            . $e($this->l('Card number')) . '</label>'
+            . '<input type="text" id="plugnpayapi-card-number" name="plugnpayapi_card_number" maxlength="23"'
+            . ' autocomplete="cc-number" required="required" /></p>';
+        $html .= '<p class="plugnpayapi-row"><label class="plugnpayapi-label" for="plugnpayapi-expiry-month">'
+            . $e($this->l('Expiration date')) . '</label><span class="plugnpayapi-expiry">';
+        $html .= '<select id="plugnpayapi-expiry-month" name="plugnpayapi_expiry_month" autocomplete="cc-exp-month" required="required">';
+        foreach ($months as $month) {
+            $html .= '<option value="' . $e($month) . '">' . $e($month) . '</option>';
+        }
+        $html .= '</select> / <select name="plugnpayapi_expiry_year" autocomplete="cc-exp-year" required="required">';
+        foreach ($years as $year) {
+            $html .= '<option value="' . $e($year) . '">20' . $e($year) . '</option>';
+        }
+        $html .= '</select></span></p>';
+        if ($useCvv) {
+            $html .= '<p class="plugnpayapi-row"><label class="plugnpayapi-label" for="plugnpayapi-cvv">'
+                . $e($this->l('CVV')) . '</label>'
+                . '<input type="password" id="plugnpayapi-cvv" name="plugnpayapi_cvv" maxlength="4"'
+                . ' autocomplete="cc-csc" required="required" /></p>';
+        }
+        $html .= '<p class="plugnpayapi-pci-notice">'
+            . $e($this->l('Your card details are encrypted in transit and sent directly to PlugnPay.'))
+            . '</p>';
+        $html .= '<p class="plugnpayapi-submit-row"><button type="submit" id="plugnpayapi-submit"'
+            . ' class="button btn btn-default standard-checkout button-medium"'
+            . ($secure ? '' : ' disabled="disabled"') . '><span>'
+            . $e($this->l('Complete Purchase')) . '</span></button></p>';
+        $html .= '</div></form></div>';
+
+        return $html;
     }
 
     /**

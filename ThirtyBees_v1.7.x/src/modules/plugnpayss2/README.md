@@ -103,7 +103,9 @@ Never logged: full card number, CVV, or publisher-password.
 
 | Symptom | What to check |
 |---|---|
-| Payment option missing | Module enabled, configured, HTTPS, currency/country/carrier restrictions |
+| Payment option missing | Module enabled, Gateway Account saved, storefront HTTPS, currency/country/carrier/group restrictions, Smarty cache cleared |
+| No PlugnPay icon on the button | Upload 1.0.2 so `logo.png` is present; clear theme/Smarty cache |
+| Onsite card form instead of the button | That is Remote API. Disable `plugnpayapi` if you only want hosted checkout |
 | Return but no order | Validation logs, cart ID / token mismatch, duplicate cart order |
 | Amount mismatch | Cart total changed between redirect and return, or currency conversion issue |
 | Gateway account mismatch | Returned `pt_gateway_account` ≠ configured Gateway Account |
@@ -115,6 +117,8 @@ Never logged: full card number, CVV, or publisher-password.
 - [ ] Module installs and uninstalls without core changes.
 - [ ] Database table is created when Store Data is enabled.
 - [ ] Empty Gateway Account shows a configuration warning.
+- [ ] On Payments, the customer sees **Pay securely by credit card with PlugnPay**
+      (icon button), not an onsite card form.
 - [ ] Payment option appears only over HTTPS.
 - [ ] Redirect auto-submits to `https://pay1.plugnpay.com/pay/`.
 - [ ] Submit uses `pb_post_auth=no`.

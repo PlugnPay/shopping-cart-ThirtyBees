@@ -4,12 +4,9 @@
   border-radius: 4px;
   color: #333;
   display: block;
-  font-size: 17px;
-  font-weight: bold;
-  letter-spacing: -1px;
-  line-height: 23px;
   margin: 0 0 1rem;
-  padding: 8px 15px 16px;
+  overflow: visible;
+  padding: 12px 15px 16px;
   position: relative;
 }
 
@@ -17,27 +14,33 @@
   color: #000;
   font-size: 17px;
   font-weight: bold;
-  margin: 8px 0 16px;
+  margin: 4px 0 16px;
 }
 
 .plugnpayapi-fields {
+  display: block;
   font-size: 14px;
   font-weight: normal;
-  letter-spacing: 0;
 }
 
-.plugnpayapi-fields .clearfix {
-  margin-bottom: 10px;
+.plugnpayapi-row {
+  clear: both;
+  margin: 0 0 12px;
+  overflow: hidden;
 }
 
 .plugnpayapi-label {
   display: inline-block;
   font-weight: bold;
+  min-width: 160px;
   padding-top: 6px;
+  vertical-align: top;
 }
 
-.plugnpayapi-fields input,
+.plugnpayapi-fields input[type="text"],
+.plugnpayapi-fields input[type="password"],
 .plugnpayapi-fields select {
+  display: inline-block;
   max-width: 22rem;
 }
 
@@ -48,8 +51,6 @@
 .plugnpayapi-pci-notice {
   color: #666;
   font-size: 0.9em;
-  font-weight: normal;
-  letter-spacing: 0;
   margin: 10px 0;
 }
 

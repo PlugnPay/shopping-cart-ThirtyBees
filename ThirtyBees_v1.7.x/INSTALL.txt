@@ -1,16 +1,17 @@
 ====================================================
 PlugnPay Remote API Module (Credit Card Payments)
-Payment Module for thirty bees v1.7.x — module v1.0.1
+Payment Module for thirty bees v1.7.x — module v1.0.8
 ====================================================
 
 ***** IMPORTANT NOTES *****
 This module is provided "AS IS". Limited technical support assistance
 will be given to help diagnose/address problems with this module.
 
-This module requires SSL and PHP cURL. thirty bees collects credit card
-information on your store's billing pages. Authorization is performed
-via PlugnPay's Remote API (authonly or authpostauth). Capture, void,
-and refund are performed in PlugnPay Merchant Admin — not from thirty bees.
+This module requires SSL and PHP cURL. On checkout step 5 (Payments)
+the customer enters card details in a "Secured card payment" form on
+your store. Authorization is performed via PlugnPay's Remote API
+(authonly or authpostauth). Capture, void, and refund are performed
+in PlugnPay Merchant Admin — not from thirty bees.
 
 PCI: Collecting cards onsite increases PCI scope. For hosted (lower
 PCI) checkout, use PlugnPay Smart Screens v2 (see INSTALL_SS2.txt).
@@ -29,17 +30,25 @@ To Install:
      ThirtyBees_v1.7.x/src/modules/plugnpayapi/ → <shop>/modules/plugnpayapi/
 
 2. In Back Office → Modules and Services, install/enable
-   "PlugnPay Remote API".
+   "PlugnPay Remote API". If thirty bees offers Upgrade, click it.
 
 3. Configure Publisher Name + Remote Client Password. Choose Authorization
-   Type (authonly or authpostauth). Select allowed currencies under
-   Payment preferences / module currency restrictions.
+   Type (authonly or authpostauth). Select allowed currencies, countries,
+   groups, and carriers under Payment preferences / module restrictions.
+
+4. Enable storefront HTTPS (see SSL notes below).
+
+5. Clear Smarty cache: Back Office → Preferences → Performance.
+
+6. Place a test order. On Payments you should see the Secured card
+   payment box with name, number, expiry, optional CVV, and
+   Complete Purchase — not a hosted-checkout button.
 
 Requirements:
 
 - thirty bees 1.7.0
 - PHP 8.0 or later with cURL and OpenSSL
-- HTTPS enabled for the storefront
+- HTTPS enabled to submit the card (the form still lists without it)
 - PlugnPay publisher name
 - PlugnPay Remote Client Password (not the Merchant Admin password)
 
@@ -50,10 +59,14 @@ reports "too many redirects" after enabling SSL:
 
 1. In Preferences → SEO & URLs, set the SSL shop domain to the same
    host as your storefront, using https://.
-2. Ensure PHP can detect HTTPS. Behind Apache or a reverse proxy,
+2. In Preferences → General, enable SSL. Do not enable
+   "Enable SSL on all pages" until the SSL URL is correct.
+3. Ensure PHP can detect HTTPS. Behind Apache or a reverse proxy,
    pass HTTPS=on or X-Forwarded-Proto: https to PHP.
-3. Do not enable "Enable SSL on all pages" until both steps above
-   are correct.
+
+After replacing an older zip, always Upgrade and clear Smarty cache.
+A stale Smarty compile can hide the card fields and leave only the
+"Secured card payment" heading.
 
 See the module README for full documentation, troubleshooting, and a
 manual test checklist:
