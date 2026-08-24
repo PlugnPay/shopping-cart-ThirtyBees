@@ -1,0 +1,54 @@
+.plugnpayapi-payment {
+  margin-bottom: 1rem;
+}
+
+.plugnpayapi-payment fieldset {
+  border: 1px solid #d6d4d4;
+  margin: 0 0.7em;
+  padding: 1rem;
+}
+
+.plugnpayapi-field {
+  margin-bottom: 0.8rem;
+}
+
+.plugnpayapi-field label {
+  display: inline-block;
+  min-width: 10rem;
+}
+
+.plugnpayapi-field input,
+.plugnpayapi-field select {
+  max-width: 22rem;
+}
+
+.plugnpayapi-expiry select {
+  width: auto;
+}
+
+.plugnpayapi-error {
+  background: #f2dede;
+  border: 1px solid #ebccd1;
+  color: #a94442;
+  margin: 0.7em;
+  padding: 0.8rem;
+}
+
+.plugnpayapi-pci-notice {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.plugnpayapi-admin-brand {
+  margin-bottom: 1rem;
+}
+
+.plugnpayapi-admin-logo {
+  margin-bottom: 1rem;
+}
+
+.plugnpayapi-admin-logo img {
+  display: block;
+  height: auto;
+  max-width: 320px;
+}

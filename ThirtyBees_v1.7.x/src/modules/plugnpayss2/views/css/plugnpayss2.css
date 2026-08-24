@@ -1,0 +1,27 @@
+.plugnpayss2-payment {
+  margin-bottom: 1rem;
+}
+
+.plugnpayss2-error {
+  background: #f2dede;
+  border: 1px solid #ebccd1;
+  color: #a94442;
+  margin: 0.7em;
+  padding: 0.8rem;
+}
+
+.plugnpayss2-notice {
+  color: #666;
+  font-size: 0.9em;
+  margin: 0.7em;
+}
+
+.plugnpayss2-redirect {
+  margin: 1rem auto;
+  max-width: 40rem;
+  padding: 1rem;
+}
+
+.plugnpayss2-redirect h1 {
+  font-size: 1.4rem;
+}

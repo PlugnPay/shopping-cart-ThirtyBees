@@ -1,0 +1,38 @@
+PlugnPay Remote API for thirty bees 1.7.x
+=========================================
+
+Requirements
+------------
+- thirty bees 1.7.0
+- PHP 7.4 through 8.3 with cURL and OpenSSL
+- HTTPS enabled for the storefront
+- PlugnPay publisher name
+- PlugnPay Remote Client Password (not the Merchant Admin password)
+
+Installation
+------------
+1. Copy src/modules/plugnpayapi to {thirty_bees_root}/modules/plugnpayapi.
+2. Sign in to the thirty bees back office.
+3. Open Modules and Services, find "PlugnPay Remote API", and select Install.
+4. Open Configure and enter the Publisher Name and Remote Client Password.
+5. Select authonly or authpostauth and configure the remaining options.
+6. In Payment > Preferences, verify the module's currency, country, customer
+   group, and carrier restrictions.
+7. Place an order over HTTPS and verify the result in PlugnPay Merchant Admin.
+
+Upgrade
+-------
+Back up the store and module configuration, replace the plugnpayapi directory,
+clear the thirty bees cache, and review the module settings.
+
+Uninstall
+---------
+Use Modules and Services > PlugnPay Remote API > Uninstall. Uninstall removes
+the module's PLUGNPAY_API_* configuration values. Historical order and payment
+records are retained.
+
+Important
+---------
+This module collects cardholder data on the store server and increases PCI DSS
+scope. Do not install it on a storefront that is not HTTPS-only. Never place
+real card details in screenshots, support tickets, or debug logs.

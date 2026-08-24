@@ -1,0 +1,9 @@
+PlugnPay Remote API for thirty bees
+
+Version 1.0.0 - 2026-08-24
+--------------------------------
+- Initial thirty bees 1.7.x release.
+- Added production Remote API authonly and authpostauth processing.
+- Added onsite card validation, HTTPS gating, and checkout token validation.
+- Added sanitized debug logging and transaction metadata recording.
+- Added installation, PCI, troubleshooting, and manual test documentation.

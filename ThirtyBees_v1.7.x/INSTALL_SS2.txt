@@ -1,0 +1,40 @@
+PlugnPay Smart Screens v2 for thirty bees 1.7.x
+================================================
+
+Requirements
+------------
+- thirty bees 1.7.0
+- PHP 7.4 through 8.3
+- HTTPS enabled for the storefront
+- PlugnPay gateway account username
+
+No Remote Client Password is required for Smart Screens v2.
+
+Installation
+------------
+1. Copy src/modules/plugnpayss2 to {thirty_bees_root}/modules/plugnpayss2.
+2. Sign in to the thirty bees back office.
+3. Open Modules and Services, find "PlugnPay Smart Screens v2", and Install.
+4. Open Configure and enter the Gateway Account and supported currency.
+5. In Payment > Preferences, verify currency, country, group, and carrier
+   restrictions.
+6. Place an order over HTTPS and verify the authorization in PlugnPay Merchant
+   Admin.
+
+Upgrade
+-------
+Back up the store, module configuration, and plugnpay_ss2 table if database
+storage is enabled. Replace the plugnpayss2 directory, clear cache, and
+review module settings.
+
+Uninstall
+---------
+Use Modules and Services > PlugnPay Smart Screens v2 > Uninstall. Uninstall
+removes PLUGNPAY_SS2_* configuration values and drops the plugnpay_ss2 table.
+Historical order records are retained.
+
+Important
+---------
+This module redirects customers to PlugnPay hosted pages and does not collect
+card data on your server. Transactions are authorization-only; settle in
+PlugnPay Merchant Admin.

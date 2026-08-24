@@ -1,0 +1,8 @@
+PlugnPay Smart Screens v2 for thirty bees
+
+Version 1.0.0 - 2026-08-24
+--------------------------------
+- Initial thirty bees 1.7.x release.
+- Added hosted Smart Screens v2 redirect checkout (authorization-only).
+- Added gateway currency conversion, return validation, and optional DB storage.
+- Added sanitized debug logging and manual test documentation.
