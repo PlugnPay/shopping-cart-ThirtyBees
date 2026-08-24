@@ -1,6 +1,6 @@
 # PlugnPay Remote API Module for thirty bees 1.7.x
 
-**Version:** 1.0.2
+**Version:** 1.0.5
 
 Accept credit cards with PlugnPay's production Remote API. Checkout remains on
 the merchant storefront, and the module posts the authorization request to
@@ -11,7 +11,7 @@ the merchant storefront, and the module posts the authorization request to
 - Native thirty bees `PaymentModule` using the `displayPayment` hook
 - Onsite cardholder name, PAN, expiration, and optional CVV collection
 - Authorize-only (`authonly`) or sale (`authpostauth`)
-- HTTPS-only storefront availability
+- HTTPS required only when submitting the card form
 - Server-side cart, customer, token, card, expiry, CVV, and amount validation
 - Billing, shipping, tax, freight, and line-item Remote API fields
 - PlugnPay order ID, authorization, AVS, and CVV result tracking
@@ -34,7 +34,7 @@ For lower PCI scope, use a hosted PlugnPay checkout product instead.
 
 - thirty bees 1.7.0
 - PHP 8.0 or later with cURL and OpenSSL
-- HTTPS enabled and detected by thirty bees
+- HTTPS enabled for card submit (the payment method still lists without it)
 - PlugnPay publisher name
 - Remote Client Password from PlugnPay Security Administration
 
@@ -68,8 +68,8 @@ Remote API endpoint.
 
 ## Checkout flow
 
-1. The `displayPayment` hook displays the card form only when the module is active,
-   configured, currency-eligible, and running over HTTPS.
+1. The `payment` / `displayPayment` hooks display the card form when the module is
+   active, configured, and currency-eligible. Missing HTTPS does not hide the method.
 2. The validation controller verifies the active cart, customer, secure
    checkout token, currency, addresses, card number, expiration, and CVV.
 3. The API client posts a form-encoded request with SSL peer and host
@@ -103,16 +103,19 @@ Do not weaken these protections or add raw request/response dumps elsewhere.
 
 ## Troubleshooting
 
-- **Module does not appear:** verify it is enabled, configured, permitted in
-  Payment Preferences, allowed for the cart currency, and the checkout request
-  is HTTPS.
+- **Module does not appear:** verify it is enabled, Publisher Name and Remote
+  Client Password are saved, and it is allowed in Modules and Services →
+  Payment (currency, country, and carrier restrictions). Upload 1.0.5, click
+  Upgrade if thirty bees offers it, then clear Smarty cache.
 - **cURL warning:** enable PHP cURL and verify outbound TCP 443 access.
 - **Empty response:** check DNS, firewall, proxy, CA certificates, and outbound
   HTTPS connectivity.
 - **Decline:** review the customer-safe gateway message and the matching
   transaction in PlugnPay Merchant Admin.
-- **HTTP 500 on Pay:** upload module version 1.0.2 and let thirty bees run
-  the upgrade. Do not resubmit a card if the gateway already approved it.
+- **HTTP 500 on payment step:** upload 1.0.5 and upgrade. Version 1.0.3
+  registered `displayPaymentEU` (array return) which PHP 8 can fatal when
+  concatenated as a string. Do not resubmit a card if the gateway already
+  approved it.
 - **Approved but order creation failed:** do not resubmit. Use the displayed
   gateway reference to reconcile the transaction in Merchant Admin and review
   the thirty bees log.
@@ -129,7 +132,7 @@ curl -d "publisher-name=ACCOUNT&publisher-password=REMOTE_PASSWORD&mode=auth&aut
 
 - [ ] Module installs and uninstalls without core changes.
 - [ ] All configuration values save; saved password is not displayed.
-- [ ] Module is hidden when the storefront is not HTTPS.
+- [ ] HTTPS is required only when submitting the card form, not to list the method.
 - [ ] Module follows currency, country, group, and carrier restrictions.
 - [ ] CVV field and server validation follow the CVV setting.
 - [ ] Invalid PAN, expired card, invalid CVV, or invalid token is rejected

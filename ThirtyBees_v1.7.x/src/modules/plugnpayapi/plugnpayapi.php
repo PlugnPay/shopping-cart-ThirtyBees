@@ -40,7 +40,7 @@ class Plugnpayapi extends PaymentModule
     {
         $this->name = 'plugnpayapi';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.2';
+        $this->version = '1.0.5';
         $this->author = 'PlugnPay Technologies';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -65,9 +65,14 @@ class Plugnpayapi extends PaymentModule
 
     public function install()
     {
-        return parent::install()
+        if (!parent::install()) {
+            return false;
+        }
+
+        return $this->registerHook('payment')
             && $this->registerHook('displayPayment')
             && $this->registerHook('paymentReturn')
+            && $this->registerHook('header')
             && $this->registerHook('displayHeader')
             && $this->installConfiguration();
     }
@@ -96,58 +101,8 @@ class Plugnpayapi extends PaymentModule
     }
 
     /**
-     * Native thirty bees checkout hook.
-     *
-     * @param array $params
-     *
-     * @return string
-     */
-    public function hookDisplayPayment($params)
-    {
-        $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
-        if (!$this->canDisplayForCart($cart)) {
-            return '';
-        }
-
-        $customer = $this->context->customer;
-        if (!Validate::isLoadedObject($customer)) {
-            return '';
-        }
-
-        $months = [];
-        for ($month = 1; $month <= 12; ++$month) {
-            $months[] = sprintf('%02d', $month);
-        }
-
-        $years = [];
-        $currentYear = (int) date('Y');
-        for ($offset = 0; $offset <= 15; ++$offset) {
-            $year = $currentYear + $offset;
-            $years[] = [
-                'value' => substr((string) $year, -2),
-                'label' => (string) $year,
-            ];
-        }
-
-        try {
-            $this->smarty->assign([
-                'plugnpayapi_action' => $this->context->link->getModuleLink($this->name, 'validation', [], true),
-                'plugnpayapi_card_owner' => trim($customer->firstname . ' ' . $customer->lastname),
-                'plugnpayapi_checkout_token' => $this->getCheckoutToken($cart, $customer),
-                'plugnpayapi_error' => (string) Tools::getValue('plugnpayapi_error'),
-                'plugnpayapi_months' => $months,
-                'plugnpayapi_years' => $years,
-                'plugnpayapi_use_cvv' => Configuration::get(self::CONFIG_USE_CVV) === 'True',
-            ]);
-
-            return $this->display(__FILE__, 'payment.tpl');
-        } catch (Throwable $exception) {
-            return '';
-        }
-    }
-
-    /**
-     * Backward-compatible alias used by PrestaShop 1.6-style hook dispatch.
+     * Classic checkout hook used by Authorize.net AIM and official bankwire.
+     * Always returns a string. Never return an array or false (PHP 8 TypeError).
      *
      * @param array $params
      *
@@ -155,16 +110,43 @@ class Plugnpayapi extends PaymentModule
      */
     public function hookPayment($params)
     {
-        return $this->hookDisplayPayment($params);
+        return $this->renderPaymentOption($params);
     }
 
+    /**
+     * Canonical thirty bees 1.7 hook name. Same HTML as hookPayment().
+     *
+     * @param array $params
+     *
+     * @return string
+     */
+    public function hookDisplayPayment($params)
+    {
+        return $this->hookPayment($params);
+    }
+
+    /**
+     * @return string
+     */
     public function hookDisplayHeader()
     {
-        if (isset($this->context->controller)) {
-            $this->context->controller->addCSS($this->_path . 'views/css/plugnpayapi.css');
+        try {
+            if (isset($this->context->controller)) {
+                $this->context->controller->addCSS($this->_path . 'views/css/plugnpayapi.css');
+            }
+        } catch (Throwable $exception) {
+            $this->logShopMessage(
+                'PlugnPay Remote API header hook failed: ' . $exception->getMessage(),
+                3
+            );
         }
+
+        return '';
     }
 
+    /**
+     * @return string
+     */
     public function hookHeader()
     {
         return $this->hookDisplayHeader();
@@ -181,15 +163,24 @@ class Plugnpayapi extends PaymentModule
             return '';
         }
 
-        $order = $params['objOrder'];
-        $this->smarty->assign([
-            'plugnpayapi_status' => (int) $order->getCurrentState() === (int) Configuration::get('PS_OS_ERROR')
-                ? 'failed'
-                : 'ok',
-            'plugnpayapi_order_reference' => (string) $order->reference,
-        ]);
+        try {
+            $order = $params['objOrder'];
+            $this->smarty->assign([
+                'plugnpayapi_status' => (int) $order->getCurrentState() === (int) Configuration::get('PS_OS_ERROR')
+                    ? 'failed'
+                    : 'ok',
+                'plugnpayapi_order_reference' => (string) $order->reference,
+            ]);
 
-        return $this->display(__FILE__, 'order_confirmation.tpl');
+            return $this->renderHookTemplate('order_confirmation.tpl');
+        } catch (Throwable $exception) {
+            $this->logShopMessage(
+                'PlugnPay Remote API payment return failed: ' . $exception->getMessage(),
+                3
+            );
+
+            return '';
+        }
     }
 
     /**
@@ -223,8 +214,11 @@ class Plugnpayapi extends PaymentModule
 
         $currency = new Currency((int) $cart->id_currency);
         $allowedCurrencies = $this->getCurrency((int) $cart->id_currency);
-        if (!Validate::isLoadedObject($currency) || !is_array($allowedCurrencies)) {
+        if (!Validate::isLoadedObject($currency)) {
             return false;
+        }
+        if (!is_array($allowedCurrencies) || !$allowedCurrencies) {
+            return true;
         }
 
         foreach ($allowedCurrencies as $allowedCurrency) {
@@ -236,9 +230,28 @@ class Plugnpayapi extends PaymentModule
         return false;
     }
 
-    public function getCheckoutToken(Cart $cart, Customer $customer)
+    public function getCheckoutToken(Cart $cart)
     {
-        return hash_hmac('sha256', $this->name . ':' . (int) $cart->id, (string) $customer->secure_key);
+        return hash_hmac('sha256', $this->name . ':' . (int) $cart->id, (string) $cart->secure_key);
+    }
+
+    /**
+     * @param Cart $cart
+     *
+     * @return Customer
+     */
+    public function resolveCheckoutCustomer($cart)
+    {
+        $customer = $this->context->customer;
+        if (Validate::isLoadedObject($customer)) {
+            return $customer;
+        }
+
+        if (Validate::isLoadedObject($cart) && (int) $cart->id_customer > 0) {
+            return new Customer((int) $cart->id_customer);
+        }
+
+        return new Customer();
     }
 
     public function getAuthType()
@@ -380,18 +393,101 @@ class Plugnpayapi extends PaymentModule
         return $fields;
     }
 
+    /**
+     * Render the onsite card form. HTTPS is not required to list the method.
+     *
+     * @param array $params
+     *
+     * @return string
+     */
+    private function renderPaymentOption($params)
+    {
+        try {
+            $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
+            if (!$this->canDisplayForCart($cart)) {
+                return '';
+            }
+
+            $customer = $this->resolveCheckoutCustomer($cart);
+            $cardOwner = '';
+            if (Validate::isLoadedObject($customer)) {
+                $cardOwner = trim($customer->firstname . ' ' . $customer->lastname);
+            }
+
+            $months = [];
+            for ($month = 1; $month <= 12; ++$month) {
+                $months[] = sprintf('%02d', $month);
+            }
+
+            $years = [];
+            $currentYear = (int) date('Y');
+            for ($offset = 0; $offset <= 15; ++$offset) {
+                $years[] = substr((string) ($currentYear + $offset), -2);
+            }
+
+            $this->smarty->assign([
+                'plugnpayapi_action' => $this->context->link->getModuleLink($this->name, 'validation', [], true),
+                'plugnpayapi_card_owner' => $cardOwner,
+                'plugnpayapi_checkout_token' => $this->getCheckoutToken($cart),
+                'plugnpayapi_error' => (string) Tools::getValue('plugnpayapi_error'),
+                'plugnpayapi_months' => $months,
+                'plugnpayapi_years' => $years,
+                'plugnpayapi_use_cvv' => Configuration::get(self::CONFIG_USE_CVV) === 'True' ? 1 : 0,
+                'plugnpayapi_secure' => $this->isSecureRequest() ? 1 : 0,
+            ]);
+
+            return $this->renderHookTemplate('payment.tpl');
+        } catch (Throwable $exception) {
+            $this->logShopMessage(
+                'PlugnPay Remote API payment hook failed: ' . $exception->getMessage(),
+                3
+            );
+
+            return '';
+        }
+    }
+
+    /**
+     * @param string $template
+     *
+     * @return string
+     */
+    private function renderHookTemplate($template)
+    {
+        try {
+            $html = $this->display(__FILE__, $template);
+
+            return is_string($html) ? $html : '';
+        } catch (Throwable $exception) {
+            $this->logShopMessage(
+                'PlugnPay Remote API template ' . $template . ' failed: ' . $exception->getMessage(),
+                3
+            );
+
+            return '';
+        }
+    }
+
+    /**
+     * @param string $message
+     * @param int $severity
+     */
+    private function logShopMessage($message, $severity = 3)
+    {
+        try {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog((string) $message, (int) $severity);
+            }
+        } catch (Throwable $ignored) {
+        }
+    }
+
     private function canDisplayForCart($cart)
     {
         return $this->active
             && $this->isConfigured()
-            && $this->isPaymentEnvironmentAvailable()
             && Validate::isLoadedObject($cart)
             && $this->checkCurrency($cart);
-    }
-
-    private function isPaymentEnvironmentAvailable()
-    {
-        return $this->requestUsesHttps() || (bool) Configuration::get('PS_SSL_ENABLED');
     }
 
     private function requestUsesHttps()

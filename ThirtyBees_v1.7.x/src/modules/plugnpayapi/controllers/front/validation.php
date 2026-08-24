@@ -49,8 +49,19 @@ class PlugnpayapiValidationModuleFrontController extends ModuleFrontController
             $this->redirectToPayment($this->module->l('This payment method is unavailable for the selected currency.'));
         }
 
+        $authorized = false;
+        foreach (Module::getPaymentModules() as $paymentModule) {
+            if (isset($paymentModule['name']) && $paymentModule['name'] === $module->name) {
+                $authorized = true;
+                break;
+            }
+        }
+        if (!$authorized) {
+            $this->redirectToPayment($this->module->l('This payment method is not available.'));
+        }
+
         $submittedToken = (string) Tools::getValue('plugnpayapi_token');
-        if (!hash_equals($module->getCheckoutToken($cart, $customer), $submittedToken)) {
+        if (!hash_equals($module->getCheckoutToken($cart), $submittedToken)) {
             $this->redirectToPayment($this->module->l('The checkout security token is invalid. Please try again.'));
         }
 

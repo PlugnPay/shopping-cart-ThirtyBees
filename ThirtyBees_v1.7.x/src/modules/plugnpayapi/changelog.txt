@@ -1,5 +1,24 @@
 PlugnPay Remote API for thirty bees
 
+Version 1.0.5 - 2026-08-24
+--------------------------------
+- Matched Authorize.net AIM and official bankwire: hookPayment plus displayPayment, both return HTML strings.
+- Wrapped payment template rendering so a Smarty error cannot HTTP 500 the whole payment step.
+- Upgrade restores currency/country/carrier restriction rows that hide the module when missing.
+- Checkout token is bound to the cart secure_key. Card form uses niara payment_module markup.
+
+Version 1.0.4 - 2026-08-24
+--------------------------------
+- Removed displayPaymentEU so PHP 8 does not fatal when thirty bees concatenates payment hook output.
+- Simplified expiry-year Smarty variables to scalar year codes.
+
+Version 1.0.3 - 2026-08-24
+--------------------------------
+- Showed the card form on the payment step instead of hiding it until click.
+- Stopped requiring detected HTTPS before listing the payment method.
+- Registered displayPaymentEU and default currency/country/carrier restrictions.
+- Loaded the checkout customer from the cart when context customer is empty.
+
 Version 1.0.2 - 2026-08-24
 --------------------------------
 - Assigned Smarty variables on the module Smarty_Data object used by thirty bees 1.7.

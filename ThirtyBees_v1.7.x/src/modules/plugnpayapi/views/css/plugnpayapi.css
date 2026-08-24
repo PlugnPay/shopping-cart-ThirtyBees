@@ -1,24 +1,28 @@
-.plugnpayapi-payment {
-  margin-bottom: 1rem;
+.payment_module a.plugnpayapi {
+  background: #fbfbfb url("../../logo.png") 15px 12px no-repeat;
+  background-size: 64px auto;
 }
 
-.plugnpayapi-payment fieldset {
+.plugnpayapi-fields {
+  background: #fbfbfb;
   border: 1px solid #d6d4d4;
-  margin: 0 0.7em;
-  padding: 1rem;
+  border-radius: 4px;
+  margin: 0 0 1rem;
+  padding: 1rem 15px 8px;
 }
 
-.plugnpayapi-field {
-  margin-bottom: 0.8rem;
+.plugnpayapi-fields .clearfix {
+  margin-bottom: 10px;
 }
 
-.plugnpayapi-field label {
+.plugnpayapi-label {
   display: inline-block;
-  min-width: 10rem;
+  font-weight: bold;
+  padding-top: 6px;
 }
 
-.plugnpayapi-field input,
-.plugnpayapi-field select {
+.plugnpayapi-fields input,
+.plugnpayapi-fields select {
   max-width: 22rem;
 }
 
@@ -26,17 +30,10 @@
   width: auto;
 }
 
-.plugnpayapi-error {
-  background: #f2dede;
-  border: 1px solid #ebccd1;
-  color: #a94442;
-  margin: 0.7em;
-  padding: 0.8rem;
-}
-
 .plugnpayapi-pci-notice {
   color: #666;
   font-size: 0.9em;
+  margin: 10px 0;
 }
 
 .plugnpayapi-admin-brand {
