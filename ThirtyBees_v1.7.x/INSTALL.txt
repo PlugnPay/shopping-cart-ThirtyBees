@@ -4,7 +4,7 @@ PlugnPay Remote API for thirty bees 1.7.x
 Requirements
 ------------
 - thirty bees 1.7.0
-- PHP 7.4 through 8.3 with cURL and OpenSSL
+- PHP 8.0 or later with cURL and OpenSSL
 - HTTPS enabled for the storefront
 - PlugnPay publisher name
 - PlugnPay Remote Client Password (not the Merchant Admin password)
